@@ -11,7 +11,7 @@ try {
         length: WEATHER_API_KEY.length,
         endsWith: last4
     });
-} catch {}
+
 
 } catch {}
 const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather';
