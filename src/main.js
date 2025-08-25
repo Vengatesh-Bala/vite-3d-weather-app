@@ -2,14 +2,17 @@ import * as THREE from 'three';
 import { gsap } from 'gsap';
 
 // Weather API configuration
-const WEATHER_API_KEY = (import.meta.env.VITE_WEATHER_API_KEY || '').trim();
+const WEATHER_API_KEY = (window.RUNTIME_CONFIG?.VITE_WEATHER_API_KEY || '').trim();
+
 // Minimal debug: log only key length and last 4 chars to verify loading
 try {
     const last4 = WEATHER_API_KEY ? WEATHER_API_KEY.slice(-4) : '';
-    console.log('[WeatherApp] Env key loaded:', {
+    console.log('[WeatherApp] Runtime key loaded:', {
         length: WEATHER_API_KEY.length,
         endsWith: last4
     });
+} catch {}
+
 } catch {}
 const WEATHER_API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 
