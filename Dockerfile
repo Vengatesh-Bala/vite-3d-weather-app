@@ -2,28 +2,19 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install dependencies
 COPY package.json package-lock.json* ./
 RUN npm ci || npm install
 
-# Copy source and build
 COPY . .
 RUN npm run build
 
 # 2) Serve stage
 FROM nginx:1.27-alpine
 
-# Copy build output
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Install envsubst (for replacing placeholders) + bash
-RUN apk add --no-cache gettext bash
-
-# Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# Custom nginx config
+RUN printf "server {\n  listen 80;\n  server_name _;\n  root /usr/share/nginx/html;\n  index index.html;\n  location / {\n    try_files \$uri \$uri/ /index.html;\n  }\n  location /config.js {\n    add_header Content-Type application/javascript;\n    return 200 'window.RUNTIME_CONFIG = { VITE_WEATHER_API_KEY: \"'\"\$VITE_WEATHER_API_KEY'\"' };';\n  }\n}\n" > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
-
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
+CMD [\"nginx\", \"-g\", \"daemon off;\"]
