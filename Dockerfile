@@ -1,37 +1,25 @@
-# 1) Build stage
-FROM node:20-alpine AS build
+# Build stage
+FROM node:18 AS build
 WORKDIR /app
 
-# Install deps
-COPY package.json package-lock.json* ./
-RUN npm ci || npm install
+COPY package*.json ./
+RUN npm install
 
-# Copy source
 COPY . .
 RUN npm run build
 
-# 2) Serve stage
-FROM nginx:1.27-alpine
+# Production stage
+FROM nginx:alpine
 
-# Copy build output
+# Copy built app to nginx
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Custom nginx config with runtime env injection
-RUN printf "server {\n\
-  listen 80;\n\
-  server_name _;\n\
-  root /usr/share/nginx/html;\n\
-  index index.html;\n\
-  location / {\n\
-    try_files \$uri \$uri/ /index.html;\n\
-  }\n\
-  location /config.js {\n\
-    default_type application/javascript;\n\
-    return 200 'window.RUNTIME_CONFIG = { VITE_WEATHER_API_KEY: \"$VITE_WEATHER_API_KEY\" };';\n\
-  }\n\
-}\n" > /etc/nginx/conf.d/default.conf
+# Add config.js template with placeholder
+COPY config.js.template /usr/share/nginx/html/config.js.template
+
+# Add entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.d/40-config.sh
+RUN chmod +x /docker-entrypoint.d/40-config.sh
 
 EXPOSE 80
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
